@@ -1,0 +1,9 @@
+{
+    "batch_size": 128,
+    "buffer_size": 1024,
+    "epochs": 25,
+    "vocab_size": 37,
+    "seq_len": 150,
+    "num_units": 48,
+    "checkpoint_every": 10
+}
