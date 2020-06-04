@@ -160,14 +160,11 @@ def train(dataroot_path=None, weights_directory=None, num_samples=None):
     checkpoint_dir = './training_checkpoints'
     checkpoint_prefix = os.path.join(checkpoint_dir,
                                     "weights-improvement-{epoch:02d}")
-
-    log_dir = os.path.join(os.getcwd(), "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     '''
         Set callback functions here.
         Tensorboard callback doesn't seem to
         work well, so I take it out.
     '''
-    tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=general_hyperparameters['checkpoint_every'])
     reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss',
                                                     factor=0.8, patience=2, min_lr=0.0001)
     # Name of the checkpoint files
@@ -193,6 +190,8 @@ def train(dataroot_path=None, weights_directory=None, num_samples=None):
                         epochs=general_hyperparameters['epochs'],
                         validation_data=t_dset,
                         validation_freq=1, verbose=1, callbacks=[reduce_lr, checkpoint_callback])
+    history_json_file = "history_{}.json".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    _dutils.save_dictionary(history, history_json_file)
 
 def test_model(num_instances=None):
     """
@@ -200,7 +199,10 @@ def test_model(num_instances=None):
     """
     idx2char = _dutils.load_dictionary('dictionary/idx2char_dict.json')
     generation_hyperparameters = _dutils.load_dictionary('hyperparameters/generation_hyperparameters.json')
-    model = load_model('final_model.h5', custom_objects={'loss': _model.loss})
+    checkpoint_dir = './training_checkpoints'
+    final_model_path = os.path.join(checkpoint_dir, 'final_model.h5')
+
+    model = load_model(final_model_path, custom_objects={'loss': _model.loss})
     for _ in range(num_instances):
         print(generate_text(model, idx2char, generation_hyperparameters))
 

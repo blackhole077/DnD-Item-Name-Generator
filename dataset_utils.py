@@ -22,7 +22,8 @@ def save_dictionary(dictionary_to_save=None, file_name=None):
         raise ValueError("Dictionary must have values present.")
     elif not isinstance(dictionary_to_save, dict):
         raise TypeError("Expected type dictionary to save. Got {}".format(str(type(dictionary_to_save))))
-    json.dump(dictionary_to_save, open(file_name, 'w'))
+    with open(file_name, 'w') as _file:
+        json.dump(dictionary_to_save, _file)
 
 def decode_entry(enc_text=None, idx2char_dict=None):
     """
@@ -238,8 +239,8 @@ def create_dictionaries(input_text, verbose=False, save_data=None):
         print(list(zip(char2idx_dict.keys(), char2idx_dict.values())))
         print('Character to Index has {} entries'.format(len(char2idx_dict.values())))
     if save_data:
-        json.dump(idx2char_dict, open('dictionary/idx2char_dict.json','w'))
-        json.dump(char2idx_dict, open('dictionary/char2idx_dict.json','w'))
+        save_dictionary(idx2char_dict, 'dictionary/idx2char_dict.json')
+        save_dictionary(char2idx_dict, 'dictionary/char2idx_dict.json')
     
     return idx2char_dict, char2idx_dict
 
