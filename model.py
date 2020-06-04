@@ -1,16 +1,16 @@
 import tensorflow as tf
 
-from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras.layers import Input, Dense, Flatten, Activation, Reshape, TimeDistributed, LSTM
-from tensorflow.keras.layers import Convolution1D, Convolution2D
-from tensorflow.keras.layers import MaxPooling1D, MaxPooling2D
-from tensorflow.keras.layers import Embedding
-from tensorflow.keras.layers import ThresholdedReLU
-from tensorflow.keras.layers import Dropout, BatchNormalization
-from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras import regularizers
-from tensorflow.keras.models import load_model
+from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.layers import (LSTM, Activation, BatchNormalization,
+                                     Convolution1D, Convolution2D, Dense,
+                                     Dropout, Embedding, Flatten, Input,
+                                     MaxPooling1D, MaxPooling2D, Reshape,
+                                     ThresholdedReLU, TimeDistributed)
+from tensorflow.keras.models import Model, Sequential, load_model
+
 import dataset_utils as _dutils
+
 
 def build_character_cnn(model_hyperparameters=None, verbose=None):
     """
@@ -22,7 +22,10 @@ def build_character_cnn(model_hyperparameters=None, verbose=None):
 
         Parameters
         ----------
-        None.
+        model_hyperparameters : dict
+            A dictionary containing values necessary to build the model.
+        verbose : bool
+            A flag to print additional information.
 
         Returns
         -------
@@ -111,13 +114,23 @@ def build_character_cnn(model_hyperparameters=None, verbose=None):
 def loss(labels, logits):
     return tf.keras.losses.categorical_crossentropy(labels, logits)
 
-def prepare_model(hyperparameters, load_weights=False, weight_directory=None, verbose=False):
-    '''Given a dictionary of hyperparameter values, thsi function builds a model according to the
-       build_model function, then compiles it with the Nadam optimizer and returns the model for
-       training.
-    '''
-    model_to_train = build_character_cnn(hyperparameters, verbose=verbose)
-    # optimizer = tf.keras.optimizers.Nadam(learning_rate=0.01, beta_1=0.9, beta_2=0.999)
+def prepare_model(model_hyperparameters=None, load_weights=False, weight_directory=None, verbose=False):
+    """
+        Create a model to generate item names.
+
+        Given a dictionary of hyperparameter values, this function builds a
+        model according to the build_model function, then compiles it with
+        Stochastic Gradient Descent and returns the model for training.
+
+        Parameters
+        ----------
+        model_hyperparameters : dict
+            A dictionary containing values necessary to build the model.
+            Contains information on 
+    """
+    if model_hyperparameters is None:
+        raise ValueError("Hyperparameters must be given to prepare a model.")
+    model_to_train = build_character_cnn(model_hyperparameters, verbose=verbose)
     optimizer = tf.keras.optimizers.SGD(lr=0.01, decay=1e-5, momentum=0.9, nesterov=True)
     model_to_train.compile(optimizer=optimizer, loss=loss)
     if verbose:

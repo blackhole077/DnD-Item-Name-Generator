@@ -1,21 +1,23 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-import os
-import datetime
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import argparse
-import numpy as np
+import datetime
+import os
+import random
+from random import random, seed
+
 import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.models import load_model
-import random
-from random import seed
-from random import random
+
 import dataset_utils as _dutils
 import model as _model
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--task', type=str, default='train', help='Do you wish to train the model or test it.')
+parser.add_argument('--task', type=str, choices=['train', 'test'], help='Do you wish to train the model or test it.')
 parser.add_argument('--num_samples', type=int, default=70000, help='How many samples do you want to take out of the full dataset?')
 parser.add_argument('--num_generate', type=int, default=5, help='How many names do you wish to generate (test only)?')
 parser.add_argument('--dataroot_path', type=str, default='item_names_lower.txt', help='The file path (including the file itself) of the raw data.')
@@ -82,7 +84,7 @@ def generate_text(trained_model, index_to_character_dict=None, generator_hyperpa
         vocab_size = generator_hyperparameters.get('vocab_size')
         seed(generator_hyperparameters.get('seed'))
     if index_to_character_dict is None:
-        index_to_character_dict = _dutils.load_dictionary('idx2char_dict.json')
+        index_to_character_dict = _dutils.load_dictionary('dictionary/idx2char_dict.json')
     if vocab_size is None:
         vocab_size = len(index_to_character_dict)
     # Generate new character from current sequence
@@ -147,11 +149,11 @@ def train(dataroot_path=None, weights_directory=None, num_samples=None):
     '''
         Load necessary hyperparameters from JSON files.
     '''
-    general_hyperparameters = _dutils.load_dictionary('hyperparameters.json')
+    general_hyperparameters = _dutils.load_dictionary('hyperparameters/hyperparameters.json')
     #If, for some reason the JSON value is not the same, update the values
     if general_hyperparameters.get('vocab_size') != dictionary_size:
         general_hyperparameters['vocab_size'] = dictionary_size
-    model_hyperparameters = _dutils.load_dictionary('model_hyperparameters.json')
+    model_hyperparameters = _dutils.load_dictionary('hyperparameters/model_hyperparameters.json')
     '''
         Set the necessary logging directories
     '''
@@ -196,8 +198,8 @@ def test_model(num_instances=None):
     """
         Test the model by generating item names.
     """
-    idx2char = _dutils.load_dictionary('idx2char_dict.json')
-    generation_hyperparameters = _dutils.load_dictionary('generation_hyperparameters.json')
+    idx2char = _dutils.load_dictionary('dictionary/idx2char_dict.json')
+    generation_hyperparameters = _dutils.load_dictionary('hyperparameters/generation_hyperparameters.json')
     model = load_model('final_model.h5', custom_objects={'loss': _model.loss})
     for _ in range(num_instances):
         print(generate_text(model, idx2char, generation_hyperparameters))

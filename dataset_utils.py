@@ -1,11 +1,12 @@
+import json
+from random import random, seed
+from unicodedata import normalize
+
+import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from unicodedata import normalize
-import json
 from tqdm import tqdm
-import numpy as np
-from random import seed
-from random import random
+
 
 def load_dictionary(file_name=None):
     if file_name:
@@ -14,8 +15,13 @@ def load_dictionary(file_name=None):
         raise ValueError("No file_name used.")
 
 def save_dictionary(dictionary_to_save=None, file_name=None):
+    """
+        Save a dictionary as a JSON file.
+    """
     if dictionary_to_save is None:
-        return
+        raise ValueError("Dictionary must have values present.")
+    elif not isinstance(dictionary_to_save, dict):
+        raise TypeError("Expected type dictionary to save. Got {}".format(str(type(dictionary_to_save))))
     json.dump(dictionary_to_save, open(file_name, 'w'))
 
 def decode_entry(enc_text=None, idx2char_dict=None):
@@ -42,7 +48,7 @@ def decode_entry(enc_text=None, idx2char_dict=None):
             the character.
     """
     if idx2char_dict is None:
-        idx2char_dict = load_dictionary('idx2char_dict.json')
+        idx2char_dict = load_dictionary('dictionary/idx2char_dict.json')
     if isinstance(enc_text, np.ndarray):
         try:
             return [idx2char_dict[enc_char] for enc_char in enc_text]
@@ -78,7 +84,7 @@ def encode_entry(text_to_encode=None, char2idx_dict=None):
             of each character present in text_to_encode.
     """
     if char2idx_dict is None:
-        char2idx_dict = load_dictionary('char2idx_dict.json')
+        char2idx_dict = load_dictionary('dictionary/char2idx_dict.json')
     if text_to_encode:
         return [char2idx_dict[c] for c in text_to_encode]
     else:
@@ -232,8 +238,8 @@ def create_dictionaries(input_text, verbose=False, save_data=None):
         print(list(zip(char2idx_dict.keys(), char2idx_dict.values())))
         print('Character to Index has {} entries'.format(len(char2idx_dict.values())))
     if save_data:
-        json.dump(idx2char_dict, open('idx2char_dict.json','w'))
-        json.dump(char2idx_dict, open('char2idx_dict.json','w'))
+        json.dump(idx2char_dict, open('dictionary/idx2char_dict.json','w'))
+        json.dump(char2idx_dict, open('dictionary/char2idx_dict.json','w'))
     
     return idx2char_dict, char2idx_dict
 

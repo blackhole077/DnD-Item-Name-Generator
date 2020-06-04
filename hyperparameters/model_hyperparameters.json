@@ -1,0 +1,8 @@
+{
+    "vocabulary_size": 37,
+    "text_length": 150,
+    "num_filters": 256,
+    "relu_threshold": 1e-6,
+    "dropout_percent": 0.35,
+    "embedding_dimension": 37
+}
