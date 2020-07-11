@@ -1,6 +1,6 @@
 # DnD-Item-Name-Generator
 A deep learning approach to generating Dungeon and Dragons-themed item names.
-
+This model used for training is basesd on the code found here: https://github.com/mhjabreel/CharCnn_Keras
 
 ## Introduction
 
