@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import argparse
 import datetime
 import os
@@ -25,7 +22,10 @@ parser.add_argument('--weight_directory', type=str, default='training_checkpoint
 args = parser.parse_args()
 
 
-def generate_text(trained_model, index_to_character_dict=None, generator_hyperparameters=None):
+def generate_text(trained_model,
+                  index_to_character_dict=None,
+                  generator_hyperparameters=None,
+                  generation_type=None):
     '''
         Generate an item name using a trained model.
 
@@ -112,12 +112,12 @@ def generate_text(trained_model, index_to_character_dict=None, generator_hyperpa
                 next_character = index_to_character_dict[np.argmax(character_probabilities)]
             except KeyError:#KeyError occurs if you load from JSON, as keys become strings instead of int
                 next_character = index_to_character_dict[str(np.argmax(character_probabilities))]
-            next_character_probability = np.max(character_probabilities)
+            # next_character_probability = np.max(character_probabilities)
         #If the choice is explore, then select a character at random.
         else:
             # Choose a random character index according to their probabilities (and its probability)
             next_character_index = np.random.choice(range(vocab_size), p=character_probabilities.ravel())
-            new_char_prob = character_probabilities[0][next_character_index]
+            # new_char_prob = character_probabilities[0][next_character_index]
             try:
                 next_character = index_to_character_dict[next_character_index]
             except KeyError:#KeyError occurs if you load from JSON, as keys become strings instead of int
@@ -135,8 +135,10 @@ def generate_text(trained_model, index_to_character_dict=None, generator_hyperpa
     # Clean the generated name
     final_name = ''.join(generated_name)
     final_name = _dutils.remove_characters(final_name)
-
-    return final_name
+    if generation_type == 'encode':
+        return _dutils.encode_entry(final_name)
+    else:
+        return final_name
 
 def train(dataroot_path=None, weights_directory=None, num_samples=None):
     # print(tf.__version__)
@@ -201,10 +203,23 @@ def test_model(num_instances=None):
     generation_hyperparameters = _dutils.load_dictionary('hyperparameters/generation_hyperparameters.json')
     checkpoint_dir = './training_checkpoints'
     final_model_path = os.path.join(checkpoint_dir, 'final_model.h5')
-
+    generated_names = np.zeros(shape=(num_instances, generation_hyperparameters.get("max_length")))
     model = load_model(final_model_path, custom_objects={'loss': _model.loss})
-    for _ in range(num_instances):
-        print(generate_text(model, idx2char, generation_hyperparameters))
+    for instance in range(num_instances):
+        generated_name = generate_text(model, idx2char, generation_hyperparameters)
+        generated_names[instance] = generated_name
+    return generated_names
+
+def name_generator_function(model, num_instances=None):
+    idx2char = _dutils.load_dictionary('dictionary/idx2char_dict.json')
+    generation_hyperparameters = _dutils.load_dictionary('hyperparameters/generation_hyperparameters.json')
+    generated_names = np.zeros(shape=(num_instances, generation_hyperparameters.get("max_length")), dtype=int)
+    for instance in range(num_instances):
+        generated_name = generate_text(model, idx2char, generation_hyperparameters, 'encode')
+        generated_name.extend([0] * (generation_hyperparameters.get("max_length") - len(generated_name)))
+        # print(_dutils.decode_entry(generated_name))
+        generated_names[instance] = generated_name
+    return generated_names
 
 
 if __name__ == '__main__':

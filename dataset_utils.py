@@ -50,11 +50,21 @@ def decode_entry(enc_text=None, idx2char_dict=None):
     """
     if idx2char_dict is None:
         idx2char_dict = load_dictionary('dictionary/idx2char_dict.json')
-    if isinstance(enc_text, np.ndarray):
+    if isinstance(enc_text, list):
         try:
             return [idx2char_dict[enc_char] for enc_char in enc_text]
         except KeyError:
             return [idx2char_dict[str(enc_char)] for enc_char in enc_text]
+    elif isinstance(enc_text, np.ndarray):
+        decoded_list = []
+        for row in enc_text:
+            try:
+                row = [idx2char_dict[enc_char] for enc_char in row]
+                decoded_list.append(''.join(row))
+            except KeyError:
+                row = [idx2char_dict[str(enc_char)] for enc_char in row]
+                decoded_list.append(''.join(row))
+        return decoded_list
     elif isinstance(enc_text, np.int64):
         try:
             return idx2char_dict[enc_text]
@@ -165,6 +175,13 @@ def remove_characters(text, characters_to_remove=None):
         if c in text:
             text = text.replace(c, '')
     return text
+
+def remove_characters_list(text_list=None):
+    result = []
+    for text in text_list:
+        text = remove_characters(text)
+        result.append(text)
+    return result
 
 def preprocess_dataset(input_dataset=None, pad_length=150):
     """

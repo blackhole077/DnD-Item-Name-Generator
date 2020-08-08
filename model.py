@@ -12,6 +12,15 @@ from tensorflow.keras.models import Model, Sequential, load_model
 import dataset_utils as _dutils
 
 
+class CrepeCNN():
+    def __init__(self, model_hyperparameters=None, optimizer=None, loss_function=None, is_training=None):
+        self._optimizer = optimizer
+        self._loss_function = loss_function
+        self.training = is_training
+        self._model = build_character_cnn(model_hyperparameters)
+    
+    
+
 def build_character_cnn(model_hyperparameters=None, verbose=None):
     """
         Create a language model based on the Crepe model in Zhang et. al.
