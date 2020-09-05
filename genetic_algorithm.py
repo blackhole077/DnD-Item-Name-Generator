@@ -24,6 +24,16 @@ class GeneticAlgorithm():
             for idx in range(self.population_size):
                 self.population[idx] = self.generation_function(**kwargs)
 
+    def regenerate_population(self, **kwargs):
+        if self.population is None:
+            self.generate_population()
+        else:
+            population_remainder = self.population_size - self.population.shape[0]
+            new_population = np.zeros(shape=(population_remainder, self.individual_length), dtype=int)
+            for idx in range(population_remainder):
+                new_population[idx] = self.generation_function(**kwargs)
+        self.population = np.vstack((self.population, new_population))
+
     def perform_single_point_crossover(self):
         target_1, target_2 = self.fetch_random_genome_pair()
         split_index = self.rng.integers(self.individual_length)
@@ -55,14 +65,31 @@ class GeneticAlgorithm():
         replacement = self.rng.integers(self.individual_size)
         self.population[row][index] = replacement
 
-    def perform_characterwise_mutation(self, row, probability_threshold=0.5):
-        for index in range(len(self.population[row])):
-            if self.rng.random() <= probability_threshold:
-                self.mutate_character(row, index)
+    def perform_characterwise_mutation(self, row, probability_threshold):
+        new_row = []
+        for _, char in enumerate(row):
+            if char != 0:
+                if self.rng.random() <= probability_threshold:
+                    replacement = self.rng.integers(4, 37)
+                    while replacement in range(5, 11):
+                        replacement = self.rng.integers(4, 37)
+                    new_row.append(replacement)
+                else:
+                    new_row.append(char)
+            else:
+                new_row.append(char)
+        return new_row
 
-    def mutate_population(self, probability_threshold=0.5):
+        # for index in range(len(self.population[row])):
+        #     if self.rng.random() <= probability_threshold:
+        #         self.mutate_character(row, index)
+
+    def mutate_population(self, probability_threshold):
+        new_rows = []
         for row in self.population:
-            self.perform_characterwise_mutation(row, probability_threshold)
+            new_row = self.perform_characterwise_mutation(row, probability_threshold)
+            new_rows.append(new_row)
+        self.population = np.append(self.population, np.array(new_rows), axis=0)
 
     def _print(self):
         print("Population Size: {}".format(self.population_size))
@@ -102,8 +129,11 @@ def acs_fitness_function(population=None, sampled_data=None):
     averages = []
     for gene in population:
         average_cosine_similarity = 0.0
+        print("Gene: {}".format(gene))
         for sample in sampled_data:
             # Cosine similarity is measured such that closer to zero is better.
+            print("Sample: {}".format(sample))
+            print("Cosine: {}".format(cosine(gene, sample)))
             average_cosine_similarity += cosine(gene, sample)
         average_cosine_similarity /= len(sampled_data)
         # Only interested in the magnitude of the vector
@@ -115,11 +145,11 @@ def cosine_similarity_fitness_function(population=None, sampled_data=None):
     for row, gene in enumerate(population):
         # gene = gene[gene > 3] # Filter out the PAD, START, and END token.
         for col, sample in enumerate(sampled_data):
+            cos = cosine(gene, sample)
             # sample = sample[sample > 3] # Filter out the PAD, START, and END token.
-            cosine_matrix[row][col] = cosine(gene, sample)
+            cosine_matrix[row][col] = cos
     avg_cosine_matrix = np.average(cosine_matrix, axis=1)
     return avg_cosine_matrix
-
 
 def test():
     ga = GeneticAlgorithm(5, 5)
@@ -145,7 +175,7 @@ def test():
 
 ga = GeneticAlgorithm(population_size=8,
                       individual_length=150,
-                      num_generations=1,
+                      num_generations=30,
                       individual_size=37,
                       generation_function=name_generator_function)
 
@@ -157,21 +187,39 @@ ga.generate_population(model=model, num_instances=1)
 print(ga.population)
 print(_dutils.remove_characters_list(_dutils.decode_entry(ga.population)))
 text = _dutils.open_file('item_names_lower.txt')
-np.random.seed(42)
-encoded_input_dataset = np.array([_dutils.encode_entry(input_datum + '#' * (150 - len(input_datum))) for input_datum in text], dtype=np.uint8)
-sample_indices = np.random.choice(len(encoded_input_dataset), 5000, replace=False)
+# np.random.seed(42)
+encoded_input_dataset = np.array([_dutils.encode_entry(input_datum + '#' * (150 - len(input_datum))) for input_datum in text], dtype=int)
+sample_indices = np.random.choice(len(encoded_input_dataset), 100, replace=False)
 sample_dataset = encoded_input_dataset[sample_indices]
 print("Encoded Shape: {}".format(sample_dataset.shape))
 # Fitness function evaluation
-acs_matrix = cosine_similarity_fitness_function(ga.population, sample_dataset)
-print(acs_matrix)
-# Selection Step
-arrlinds = np.argsort(acs_matrix)[::]
-print(arrlinds)
-ga.population = np.array(ga.population)[arrlinds]
-print(_dutils.remove_characters_list(_dutils.decode_entry(ga.population)))
-# Enforce elitism, cull all but top quarter of population.
-cut = (ga.population_size // 4)
-parent_pool = ga.population[:cut]
-print(_dutils.remove_characters_list(_dutils.decode_entry(parent_pool)))
+for i in range(ga.num_generations):
+    print("GENERATION {} OF {}".format(i, ga.num_generations))
+    acs_matrix = cosine_similarity_fitness_function(ga.population, sample_dataset)
+    print(acs_matrix)
+    # Selection Step
+    arrlinds = np.argsort(acs_matrix)[::]
+    print(arrlinds)
+    ga.population = np.array(ga.population)[arrlinds]
+    print(_dutils.remove_characters_list(_dutils.decode_entry(ga.population)))
+    # Enforce elitism, cull all but top quarter of population.
+    rows_to_cut = []
+    for index, idx in enumerate(arrlinds):
+        if acs_matrix[idx] >= 0.35:
+            rows_to_cut.append(index)
+    print("Removing indices {}".format(rows_to_cut))
+    ga.population = np.delete(ga.population, tuple(rows_to_cut), axis=0)
+    print(_dutils.remove_characters_list(_dutils.decode_entry(ga.population)))
+    cut = (ga.population_size // 4)
+    if ga.population.shape[0] > cut:
+        ga.population = np.delete(ga.population, np.s_[cut:], axis=0)
+    print(_dutils.remove_characters_list(_dutils.decode_entry(ga.population)))
+    # ga.mutate_population(probability_threshold=0.10)
+    ga.population = np.unique(ga.population, axis=0)
+    print(_dutils.remove_characters_list(_dutils.decode_entry(ga.population)))
+    ga.regenerate_population(model=model, num_instances=1)
+    print(_dutils.remove_characters_list(_dutils.decode_entry(ga.population)))
+
+# print(parent_pool)
+# print(_dutils.remove_characters_list(_dutils.decode_entry(parent_pool)))
 # Mutation phase
