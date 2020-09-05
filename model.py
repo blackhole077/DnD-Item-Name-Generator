@@ -112,7 +112,7 @@ def build_character_cnn(model_hyperparameters=None, verbose=None):
     return model
 
 def loss(labels, logits):
-    return tf.keras.losses.categorical_crossentropy(labels, logits)
+    return tf.keras.losses.sparse_categorical_crossentropy(labels, logits)
 
 def prepare_model(model_hyperparameters=None, load_weights=False, weight_directory=None, verbose=False):
     """
